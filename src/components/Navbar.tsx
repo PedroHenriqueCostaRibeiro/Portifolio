@@ -19,7 +19,7 @@ export default function Navbar() {
         {/* Logo */}
         <div className="flex flex-row items-center gap-3">
           <span
-            className="text-[21px] sm:text-[26px] tracking-tight text-black"
+            className="text-[21px] sm:text-[26px] font-medium tracking-tight text-black"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Pedro Ribeiro
