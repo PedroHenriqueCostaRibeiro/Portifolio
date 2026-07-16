@@ -10,7 +10,7 @@ Portfólio pessoal de Pedro Ribeiro, evoluído da landing page "Mainframe". O de
 
 **Regra central: toda página, seção ou componente novo segue o visual existente.** Em caso de conflito entre um pedido e o design system, aponte o conflito antes de implementar.
 
-- **Fontes:** `var(--font-heading)` (HelveticaNowDisplay-Medium) apenas para logo e títulos; `var(--font-body)` (HelveticaNowDisplayW01-Rg) para todo o resto. Definidas em `src/index.css`, carregadas via `<link>` no `index.html`. Não introduza outras fontes.
+- **Fontes:** **Inter** (open source, SIL OFL), auto-hospedada via `@fontsource-variable/inter` e importada em `src/main.tsx` — sem CDN de terceiros. As variáveis vivem em `src/index.css`: `var(--font-heading)` (Inter, peso 500 via `font-medium`) apenas para logo e títulos; `var(--font-body)` (Inter, peso 400) para todo o resto. Não introduza outras fontes.
 - **Paleta:** preto sobre fundos claros. Hovers invertem as cores (branco↔preto) ou usam `opacity-60`. Não introduza cores de destaque sem discutir antes.
 - **Elementos de identidade:** pílulas `rounded-full` com borda sutil (`border-black/10` ou `border-white`), tipografia grande e fluida com `clamp()`, efeitos de blur, vídeo de fundo fixo.
 - **Animações:** discretas e curtas — fade/slide de 0.4s, `transition-colors` de 0.2s, cursor piscando via keyframe `blink`. Nada chamativo.
