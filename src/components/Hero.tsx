@@ -1,0 +1,138 @@
+import { useEffect, useState } from 'react'
+import { useTypewriter } from '../hooks/useTypewriter'
+
+const TYPEWRITER_TEXT =
+  'Prazer, sou o Pedro. Transformo ideias em produtos web, do backend ao frontend. Vamos construir algo?'
+
+const PILL_LABELS = [
+  'Ver projetos',
+  'Sobre mim',
+  'Minha experiência',
+  'Vamos conversar',
+]
+
+const EMAIL = 'pedrohcribeiro75@gmail.com'
+
+/** Two overlapping rectangles — a small copy icon. */
+function CopyIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <rect
+        x="3.5"
+        y="3.5"
+        width="7"
+        height="7"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1"
+      />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="7"
+        height="7"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1"
+      />
+    </svg>
+  )
+}
+
+export default function Hero() {
+  const { displayed, done } = useTypewriter(TYPEWRITER_TEXT)
+  const [pillsVisible, setPillsVisible] = useState(false)
+
+  // Pills fade/slide in 400ms after load, independent of the typewriter.
+  useEffect(() => {
+    const id = setTimeout(() => setPillsVisible(true), 400)
+    return () => clearTimeout(id)
+  }, [])
+
+  const copyEmail = () => {
+    navigator.clipboard?.writeText(EMAIL)
+  }
+
+  return (
+    <section
+      className="h-screen flex flex-col justify-end pb-12 md:justify-center md:pb-0 px-5 sm:px-8 md:px-10 overflow-hidden"
+      style={{ zIndex: 1, position: 'relative' }}
+    >
+      <div className="max-w-xl relative z-10">
+        {/* 1. Blurred intro label */}
+        <p
+          className="pointer-events-none select-none mb-5 sm:mb-6"
+          style={{
+            fontSize: 'clamp(18px, 4vw, 26px)',
+            lineHeight: 1.3,
+            fontWeight: 400,
+            color: '#000',
+            filter: 'blur(4px)',
+          }}
+        >
+          Desenvolvedor Full-Stack
+          <br />
+          React · Next.js · TypeScript
+        </p>
+
+        {/* 2. Typewriter text */}
+        <p
+          className="text-black mb-5 sm:mb-6"
+          style={{
+            fontSize: 'clamp(18px, 4vw, 26px)',
+            lineHeight: 1.35,
+            fontWeight: 400,
+            minHeight: '54px',
+          }}
+        >
+          {displayed}
+          {!done && (
+            <span
+              className="inline-block w-[2px] h-[1.1em] bg-black align-middle ml-[2px]"
+              style={{ animation: 'blink 1s step-end infinite' }}
+            />
+          )}
+        </p>
+
+        {/* 3. Action pill buttons */}
+        <div
+          className="flex flex-wrap gap-y-1"
+          style={{
+            opacity: pillsVisible ? 1 : 0,
+            transform: pillsVisible ? 'translateY(0)' : 'translateY(8px)',
+            transition: 'opacity 0.4s ease, transform 0.4s ease',
+          }}
+        >
+          {PILL_LABELS.map((label) => (
+            <button
+              key={label}
+              type="button"
+              className="inline-flex items-center justify-center bg-white text-black border border-black/10 rounded-full text-[13px] sm:text-[15px] px-4 sm:px-5 py-[0.3em] mx-[0.2em] mb-[0.4em] whitespace-nowrap hover:bg-black hover:text-white transition-colors duration-200"
+            >
+              {label}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            onClick={copyEmail}
+            className="inline-flex items-center justify-center text-white bg-transparent border border-white rounded-full text-[13px] sm:text-[15px] px-4 sm:px-5 py-[0.3em] mx-[0.2em] mb-[0.4em] whitespace-nowrap gap-2 sm:gap-3 hover:bg-white hover:text-black transition-colors duration-200"
+          >
+            <span>
+              Fale comigo:{' '}
+              <span className="underline underline-offset-1">{EMAIL}</span>
+            </span>
+            <CopyIcon />
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
