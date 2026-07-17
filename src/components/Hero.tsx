@@ -49,6 +49,7 @@ function CopyIcon() {
 export default function Hero() {
   const { displayed, done } = useTypewriter(TYPEWRITER_TEXT)
   const [pillsVisible, setPillsVisible] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   // Pills fade/slide in 400ms after load, independent of the typewriter.
   useEffect(() => {
@@ -56,8 +57,14 @@ export default function Hero() {
     return () => clearTimeout(id)
   }, [])
 
-  const copyEmail = () => {
-    navigator.clipboard?.writeText(EMAIL)
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(EMAIL)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // clipboard indisponível (contexto inseguro ou permissão negada)
+    }
   }
 
   return (
@@ -126,8 +133,14 @@ export default function Hero() {
             className="inline-flex items-center justify-center text-white bg-transparent border border-white rounded-full text-[13px] sm:text-[15px] px-4 sm:px-5 py-[0.3em] mx-[0.2em] mb-[0.4em] whitespace-nowrap gap-2 sm:gap-3 hover:bg-white hover:text-black transition-colors duration-200"
           >
             <span>
-              Fale comigo:{' '}
-              <span className="underline underline-offset-1">{EMAIL}</span>
+              {copied ? (
+                'Copiado!'
+              ) : (
+                <>
+                  Fale comigo:{' '}
+                  <span className="underline underline-offset-1">{EMAIL}</span>
+                </>
+              )}
             </span>
             <CopyIcon />
           </button>
