@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 
 const VIDEO_SRC =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260530_042513_df96a13b-6155-4f6e-8b93-c9dee66fba08.mp4'
@@ -12,6 +13,7 @@ const SENSITIVITY = 0.8
  */
 export default function BackgroundVideo() {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   // Latest desired time + whether a seek is currently in flight.
   const targetTimeRef = useRef(0)
@@ -21,6 +23,9 @@ export default function BackgroundVideo() {
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
+    // Sem scrub por mouse quando o usuário prefere movimento reduzido: o vídeo
+    // fica parado no primeiro frame (nunca é play()ado).
+    if (prefersReducedMotion) return
 
     const seek = () => {
       if (!video.duration || Number.isNaN(video.duration)) return
@@ -66,7 +71,7 @@ export default function BackgroundVideo() {
       window.removeEventListener('mousemove', handleMouseMove)
       video.removeEventListener('seeked', handleSeeked)
     }
-  }, [])
+  }, [prefersReducedMotion])
 
   return (
     <video

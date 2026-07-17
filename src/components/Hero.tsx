@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTypewriter } from '../hooks/useTypewriter'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 
 const TYPEWRITER_TEXT =
-  'Prazer, sou o Pedro. Transformo ideias em produtos web, do backend ao frontend. Vamos construir algo?'
+  'Prazer, sou Pedro Ribeiro, Software Engineer. Transformo ideias em produtos web. Vamos construir algo?'
 
 const PILL_LABELS = [
   'Ver projetos',
@@ -48,14 +49,20 @@ function CopyIcon() {
 
 export default function Hero() {
   const { displayed, done } = useTypewriter(TYPEWRITER_TEXT)
-  const [pillsVisible, setPillsVisible] = useState(false)
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const [pillsVisible, setPillsVisible] = useState(prefersReducedMotion)
   const [copied, setCopied] = useState(false)
 
   // Pills fade/slide in 400ms after load, independent of the typewriter.
+  // Com movimento reduzido, aparecem imediatamente (sem fade/slide).
   useEffect(() => {
+    if (prefersReducedMotion) {
+      setPillsVisible(true)
+      return
+    }
     const id = setTimeout(() => setPillsVisible(true), 400)
     return () => clearTimeout(id)
-  }, [])
+  }, [prefersReducedMotion])
 
   const copyEmail = async () => {
     try {
@@ -84,7 +91,7 @@ export default function Hero() {
             filter: 'blur(4px)',
           }}
         >
-          Desenvolvedor Full-Stack
+          Software Engineer
           <br />
           React · Next.js · TypeScript
         </p>
@@ -103,7 +110,11 @@ export default function Hero() {
           {!done && (
             <span
               className="inline-block w-[2px] h-[1.1em] bg-black align-middle ml-[2px]"
-              style={{ animation: 'blink 1s step-end infinite' }}
+              style={{
+                animation: prefersReducedMotion
+                  ? undefined
+                  : 'blink 1s step-end infinite',
+              }}
             />
           )}
         </p>
@@ -113,8 +124,14 @@ export default function Hero() {
           className="flex flex-wrap gap-y-1"
           style={{
             opacity: pillsVisible ? 1 : 0,
-            transform: pillsVisible ? 'translateY(0)' : 'translateY(8px)',
-            transition: 'opacity 0.4s ease, transform 0.4s ease',
+            transform: prefersReducedMotion
+              ? undefined
+              : pillsVisible
+                ? 'translateY(0)'
+                : 'translateY(8px)',
+            transition: prefersReducedMotion
+              ? undefined
+              : 'opacity 0.4s ease, transform 0.4s ease',
           }}
         >
           {PILL_LABELS.map((label) => (
