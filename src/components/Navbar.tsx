@@ -59,6 +59,8 @@ export default function Navbar() {
         <button
           type="button"
           aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
           onClick={() => setMenuOpen((v) => !v)}
           className="md:hidden flex flex-col gap-[5px]"
         >
@@ -87,10 +89,12 @@ export default function Navbar() {
 
       {/* Mobile overlay */}
       <div
-        className="md:hidden fixed inset-0 bg-white/95 backdrop-blur-sm flex flex-col justify-center items-start px-8 gap-8 transition-opacity duration-300"
+        id="mobile-menu"
+        className="md:hidden fixed inset-0 bg-white/95 backdrop-blur-sm flex flex-col justify-center items-start px-8 gap-8 transition-[opacity,visibility] duration-300"
         style={{
           zIndex: 9,
           opacity: menuOpen ? 1 : 0,
+          visibility: menuOpen ? 'visible' : 'hidden',
           pointerEvents: menuOpen ? 'auto' : 'none',
         }}
       >
