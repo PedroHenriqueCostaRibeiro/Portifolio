@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTypewriter } from '../hooks/useTypewriter'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
+import Pill from './Pill'
 
 const TYPEWRITER_TEXT =
   'Prazer, sou Pedro Ribeiro, Software Engineer. Transformo ideias em produtos web. Vamos construir algo?'
@@ -135,20 +136,10 @@ export default function Hero() {
           }}
         >
           {PILL_LABELS.map((label) => (
-            <button
-              key={label}
-              type="button"
-              className="inline-flex items-center justify-center bg-white text-black border border-black/10 rounded-full text-[13px] sm:text-[15px] px-4 sm:px-5 py-[0.3em] mx-[0.2em] mb-[0.4em] whitespace-nowrap hover:bg-black hover:text-white transition-colors duration-200"
-            >
-              {label}
-            </button>
+            <Pill key={label}>{label}</Pill>
           ))}
 
-          <button
-            type="button"
-            onClick={copyEmail}
-            className="inline-flex items-center justify-center text-white bg-transparent border border-white rounded-full text-[13px] sm:text-[15px] px-4 sm:px-5 py-[0.3em] mx-[0.2em] mb-[0.4em] whitespace-nowrap gap-2 sm:gap-3 hover:bg-white hover:text-black transition-colors duration-200"
-          >
+          <Pill variant="outline" onClick={copyEmail} className="gap-2 sm:gap-3">
             <span>
               {copied ? (
                 'Copiado!'
@@ -160,7 +151,7 @@ export default function Hero() {
               )}
             </span>
             <CopyIcon />
-          </button>
+          </Pill>
         </div>
       </div>
     </section>
