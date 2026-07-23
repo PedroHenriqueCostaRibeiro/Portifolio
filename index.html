@@ -3,11 +3,66 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ⚠️ Troque SEU-DOMINIO.com pela URL real de produção em TODAS as
+         ocorrências abaixo, e também em public/robots.txt e public/sitemap.xml.
+         Sem uma URL absoluta, o preview de compartilhamento não carrega a imagem. -->
+
+    <title>Pedro Ribeiro — Software Engineer</title>
     <meta
       name="description"
-      content="Portfólio de Pedro Ribeiro, desenvolvedor full-stack. Produtos web com React, Next.js e TypeScript."
+      content="Portfólio de Pedro Ribeiro, Software Engineer. Produtos web com React, Next.js e TypeScript."
     />
-    <title>Pedro Ribeiro — Desenvolvedor Full-Stack</title>
+    <link rel="canonical" href="https://SEU-DOMINIO.com/" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#8d8b89" />
+
+    <!-- Open Graph — preview no LinkedIn, WhatsApp, Slack, Discord, Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://SEU-DOMINIO.com/" />
+    <meta property="og:site_name" content="Pedro Ribeiro" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content="Pedro Ribeiro — Software Engineer" />
+    <meta
+      property="og:description"
+      content="Portfólio de Pedro Ribeiro, Software Engineer. Produtos web com React, Next.js e TypeScript."
+    />
+    <meta property="og:image" content="https://SEU-DOMINIO.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Pedro Ribeiro — Software Engineer. React, Next.js e TypeScript."
+    />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pedro Ribeiro — Software Engineer" />
+    <meta
+      name="twitter:description"
+      content="Portfólio de Pedro Ribeiro, Software Engineer. Produtos web com React, Next.js e TypeScript."
+    />
+    <meta name="twitter:image" content="https://SEU-DOMINIO.com/og-image.png" />
+
+    <!-- Dados estruturados — ajuda o Google a entender que a página é uma
+         pessoa específica (aparece quando alguém busca pelo seu nome). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Pedro Ribeiro",
+        "jobTitle": "Software Engineer",
+        "email": "pedrohcribeiro75@gmail.com",
+        "url": "https://SEU-DOMINIO.com/",
+        "knowsAbout": ["React", "Next.js", "TypeScript"],
+        "sameAs": [
+          "https://github.com/PedroHenriqueCostaRibeiro"
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
