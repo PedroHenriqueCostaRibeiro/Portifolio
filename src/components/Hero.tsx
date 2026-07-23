@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTypewriter } from '../hooks/useTypewriter'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import Pill from './Pill'
+import CopyIcon from './icons/CopyIcon'
 
 const TYPEWRITER_TEXT =
   'Prazer, sou Pedro Ribeiro, Software Engineer. Transformo ideias em produtos web. Vamos construir algo?'
@@ -14,39 +15,6 @@ const PILL_LABELS = [
 ]
 
 const EMAIL = 'pedrohcribeiro75@gmail.com'
-
-/** Two overlapping rectangles — a small copy icon. */
-function CopyIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <rect
-        x="3.5"
-        y="3.5"
-        width="7"
-        height="7"
-        rx="1"
-        stroke="currentColor"
-        strokeWidth="1"
-      />
-      <rect
-        x="1.5"
-        y="1.5"
-        width="7"
-        height="7"
-        rx="1"
-        stroke="currentColor"
-        strokeWidth="1"
-      />
-    </svg>
-  )
-}
 
 export default function Hero() {
   const { displayed, done } = useTypewriter(TYPEWRITER_TEXT)

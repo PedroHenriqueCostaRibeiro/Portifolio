@@ -383,3 +383,237 @@ absoluta** na imagem, senão nada aparece), um favicon SVG servido de `public/` 
 fixo, e JSON-LD para o Google te reconhecer como pessoa. O único passo que falta é trocar
 o placeholder `SEU-DOMINIO.com` pela URL real depois do deploy — sem isso, o preview não
 carrega a imagem.
+
+---
+---
+
+# Aula 2 — Extraindo o `CopyIcon` do `Hero.tsx`
+
+> Um refactor pequeno, mas cheio de fundamentos. A ideia aqui não é só
+> "mover código de lugar" — é entender **por que** movemos, **quando** vale a
+> pena e o que cada linha está realmente fazendo. Leia como se estivéssemos
+> lado a lado no editor.
+
+---
+
+## 0. O que fizemos, em uma frase
+
+Tiramos a função `CopyIcon` de dentro de `Hero.tsx` e a colocamos em seu
+próprio arquivo, `src/components/icons/CopyIcon.tsx`. O `Hero` agora **importa**
+o ícone em vez de **declará-lo**.
+
+Antes:
+
+```tsx
+// Hero.tsx — DOIS componentes no mesmo arquivo
+function CopyIcon() { /* ... */ }
+export default function Hero() { /* ...usa <CopyIcon /> */ }
+```
+
+Depois:
+
+```tsx
+// icons/CopyIcon.tsx
+export default function CopyIcon() { /* ... */ }
+
+// Hero.tsx
+import CopyIcon from './icons/CopyIcon'
+export default function Hero() { /* ...usa <CopyIcon /> */ }
+```
+
+Parece trivial. O valor está nos **porquês** abaixo.
+
+---
+
+## 1. A regra "um componente por arquivo" — e por que ela existe
+
+O `CLAUDE.md` do projeto pede: *um componente por arquivo*. Não é capricho.
+É uma aplicação prática do princípio da **responsabilidade única** (cada
+unidade de código tem um motivo para existir e um motivo para mudar). Quando um
+arquivo tem um único componente exportado, você ganha quatro coisas concretas:
+
+1. **Localização previsível.** Precisa mexer no ícone de cópia? O arquivo se
+   chama `CopyIcon.tsx`. Você não precisa lembrar que ele "mora escondido dentro
+   do Hero". O nome do arquivo vira um índice do projeto.
+
+2. **Diffs menores e honestos.** Quando `CopyIcon` e `Hero` dividem arquivo,
+   qualquer mudança em um "suja" o histórico do outro. No `git blame` e nos code
+   reviews, isso mistura assuntos. Arquivos separados = históricos separados.
+
+3. **Testabilidade isolada.** Um arquivo próprio pode ser importado sozinho por
+   um teste, sem arrastar junto todo o peso do `Hero` (hook de typewriter,
+   estado de clipboard, timers...).
+
+4. **Reuso sem cópia.** Enquanto o ícone estava preso ao `Hero`, usá-lo em outro
+   lugar exigiria copiar e colar o SVG. Agora é `import CopyIcon from ...`.
+
+> **Fundamento:** acoplamento e coesão. Queremos **alta coesão** (coisas que
+> mudam juntas ficam juntas) e **baixo acoplamento** (coisas independentes não se
+> prendem umas às outras). O `CopyIcon` não tem nada a ver com a lógica do
+> `Hero` — ele é decoração. Logo, não deveria depender do arquivo do `Hero` para
+> existir.
+
+---
+
+## 2. "Mas é um helper minúsculo — não dá pra deixar quieto?"
+
+Ótima pergunta, e a resposta honesta é: **às vezes dá.** Nem toda função
+auxiliar precisa virar arquivo. A regra tem exceções conscientes quando o
+helper é (a) minúsculo, (b) privado daquele arquivo e (c) sem chance de reuso.
+O próprio objetivo desta tarefa reconhecia isso: *"mover para arquivo próprio,
+ou aceitar conscientemente como exceção de helper minúsculo"*.
+
+Então por que **extrair** neste caso? Três razões:
+
+- **Ícones tendem a se multiplicar.** Hoje é o `CopyIcon`; amanhã aparece um
+  ícone de link externo, um de seta, um de e-mail. Ícone é a categoria de helper
+  que *quase sempre* ganha irmãos. Extrair o primeiro estabelece o lugar deles.
+- **Consistência com o precedente do repo.** O commit anterior já fez
+  exatamente esse movimento com o `Pill` (`refactor: extrai componente Pill
+  reutilizável do Hero`). Seguir o mesmo padrão deixa o projeto coerente — e
+  coerência é o que torna um código previsível para quem chega depois.
+- **O custo é quase zero.** Um SVG estático, sem props e sem estado, migra sem
+  risco. Quando extrair é barato e o reuso é provável, extrair ganha.
+
+> **A lição de julgamento:** a regra não é "sempre extraia tudo". É "saiba
+> *avaliar* coesão, reuso provável e consistência, e então decida". Aqui os três
+> apontaram para extrair.
+
+---
+
+## 3. Anatomia do arquivo novo, linha a linha
+
+```tsx
+/** Two overlapping rectangles — a small copy icon. */
+export default function CopyIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+         xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1"
+            stroke="currentColor" strokeWidth="1" />
+      <rect x="1.5" y="1.5" width="7" height="7" rx="1"
+            stroke="currentColor" strokeWidth="1" />
+    </svg>
+  )
+}
+```
+
+Três detalhes que valem ouro:
+
+### `export default function CopyIcon()`
+Usamos **default export** para espelhar o `Pill.tsx` e o `Hero.tsx` — o projeto
+adotou default export para componentes. A vantagem prática do default é o import
+limpo: `import CopyIcon from './icons/CopyIcon'`, sem chaves. (Named exports —
+`export function CopyIcon` + `import { CopyIcon }` — são melhores quando um
+arquivo exporta várias coisas e você quer que o nome seja obrigatório e
+verificável pelo autocomplete. Aqui o arquivo exporta **uma** coisa, então
+default é a escolha idiomática do projeto.)
+
+### `stroke="currentColor"`
+Este é o truque de acessibilidade e reuso mais importante do arquivo.
+`currentColor` é uma palavra-chave do CSS/SVG que diz: *"use a cor de texto
+(`color`) do elemento pai"*. Por isso o ícone fica preto quando o botão está no
+estado normal e **inverte para branco** quando o pill `outline` está em hover —
+sem escrevermos nenhuma regra de cor para o ícone. Ele simplesmente herda. Se
+tivéssemos fixado `stroke="black"`, o ícone sumiria no hover de fundo escuro.
+
+> **Fundamento:** herança de cor via `currentColor` é o que permite um único
+> componente de ícone servir em qualquer contexto de cor. É o motivo de
+> bibliotecas de ícones (Lucide, Heroicons) usarem `currentColor` em tudo.
+
+### `aria-hidden="true"`
+O ícone é **decorativo**: ele repete visualmente a ação que o texto do botão já
+descreve ("Fale comigo: ..."). Um leitor de tela que anunciasse "imagem" aqui só
+adicionaria ruído. `aria-hidden="true"` remove o elemento da árvore de
+acessibilidade. Regra geral: **ícone que acompanha texto é decorativo → esconda
+do leitor de tela; ícone que é a única informação → dê um rótulo** (`aria-label`
+ou `<title>`).
+
+---
+
+## 4. Por que a pasta `icons/`?
+
+Duas formas de organizar componentes:
+
+- **Plana:** tudo em `components/` (`Pill.tsx`, `Navbar.tsx`, `CopyIcon.tsx`...).
+- **Por tipo:** uma subpasta `components/icons/` para os ícones.
+
+Escolhemos `components/icons/CopyIcon.tsx`. O raciocínio:
+
+- Ícones formam uma **família previsível** — compartilham forma (SVG pequeno,
+  `currentColor`, `aria-hidden`) e tendem a chegar em grupo. Agrupá-los antecipa
+  esse crescimento e evita que a pasta `components/` vire uma lista longa e
+  misturada.
+- O **custo** dessa decisão é honesto e vale ser dito: introduzimos uma
+  convenção que **ainda não existia** no repo. A partir de agora, "ícone novo vai
+  em `icons/`" passa a ser uma regra implícita que a equipe precisa seguir. Vale
+  a pena quando você acredita que virão mais ícones — que é o nosso caso.
+
+> **Trade-off geral:** estrutura plana é mais simples até o ponto em que vira
+> bagunça; estrutura por tipo organiza, mas só se paga quando há volume. Não
+> crie pastas para um único arquivo *sem* expectativa de crescimento — isso seria
+> abstração prematura. Crie quando o padrão de crescimento é claro.
+
+---
+
+## 5. Por que **não** criamos um teste para o `CopyIcon`
+
+O projeto tem uma filosofia de testes explícita (veja
+`src/hooks/useTypewriter.test.ts`): **testar a intenção que o usuário percebe,
+não os detalhes de implementação.**
+
+O `CopyIcon` não expõe comportamento nenhum: sem props, sem estado, sem
+interação, e ainda por cima `aria-hidden` (invisível para a árvore de
+acessibilidade). Um teste dele só poderia afirmar "o SVG tem dois `<rect>`" — ou
+seja, testaria a *implementação*, não uma *intenção*. Esse tipo de teste quebra
+quando você ajusta o desenho do ícone, mesmo sem nenhum bug real. É ruído.
+
+O comportamento que **importa** já vive no `Hero`: clicar copia o e-mail e o
+texto vira "Copiado!" por 2 segundos. *Esse* é o teste que vale escrever (no
+`Hero`, se e quando quiser cobertura), porque descreve algo que o usuário
+percebe.
+
+> **Fundamento:** a pergunta certa antes de escrever um teste não é "esse código
+> pode ser testado?", e sim "existe um comportamento observável que eu quero
+> proteger de regressões?". Se a resposta é não, o teste é custo sem retorno.
+
+---
+
+## 6. Como verificar que deu certo
+
+```bash
+npm run build
+```
+Type-check + build de produção. Deve passar limpo: o import `./icons/CopyIcon`
+resolve e não sobrou nenhum `CopyIcon` órfão no `Hero.tsx`.
+
+```bash
+npm test
+```
+A suíte existente continua verde — a mudança é uma **movimentação**, não altera
+comportamento algum.
+
+```bash
+npm run dev
+```
+Abra `http://localhost:5173` e confira, no botão "Fale comigo: ...":
+- o ícone de cópia continua à direita do texto;
+- clicar copia o e-mail e o rótulo vira "Copiado!" por 2s;
+- no hover do pill (fundo branco → texto preto), o ícone acompanha a cor —
+  prova viva do `currentColor` funcionando.
+
+E o teste final contra o **objetivo**: abra o `Hero.tsx`. Ele agora declara
+**um único componente**. Missão cumprida.
+
+---
+
+## Resumo dos fundamentos (Aula 2)
+
+| Conceito | Onde apareceu | Por que importa |
+|---|---|---|
+| Responsabilidade única / coesão | regra "um componente por arquivo" | código previsível, diffs limpos |
+| Julgamento sobre exceções | extrair vs. manter helper | regras servem a objetivos, não o contrário |
+| `currentColor` | `stroke` do SVG | um ícone serve a qualquer cor de contexto |
+| `aria-hidden` | ícone decorativo | acessibilidade sem ruído |
+| Abstração no tempo certo | pasta `icons/` | organizar quando há crescimento, não antes |
+| Teste de intenção | ausência de `CopyIcon.test.tsx` | não testar implementação |
