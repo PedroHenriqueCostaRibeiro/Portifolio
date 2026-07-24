@@ -617,3 +617,317 @@ E o teste final contra o **objetivo**: abra o `Hero.tsx`. Ele agora declara
 | `aria-hidden` | ícone decorativo | acessibilidade sem ruído |
 | Abstração no tempo certo | pasta `icons/` | organizar quando há crescimento, não antes |
 | Teste de intenção | ausência de `CopyIcon.test.tsx` | não testar implementação |
+
+---
+---
+
+# Aula 3 — Testando as intenções observáveis do `Hero`
+
+> Acompanha `src/components/Hero.test.tsx`. A ideia não é descrever o que o teste
+> faz, e sim te ensinar **por que** cada linha existe — os fundamentos de web e de
+> testes por trás dela. Leia com o arquivo de teste aberto ao lado.
+
+---
+
+## 0. O ponto de partida: o que é "intenção observável"?
+
+O `CLAUDE.md` deste projeto tem uma regra forte:
+
+> Teste o comportamento que o usuário percebe, não detalhes internos de implementação.
+> - ✅ "revela o texto completo e marca done ao terminar"
+> - ❌ "chama setState N vezes com os argumentos corretos"
+
+Por que isso importa tanto? Porque um teste é um **contrato sobre comportamento**. Se
+você testa "chamou `setState` 3 vezes", qualquer refatoração legítima (trocar `useState`
+por `useReducer`, memoizar algo, reordenar o interior) quebra o teste **sem que nada
+tenha piorado para o usuário**. Testes assim geram falsos alarmes e, com o tempo, as
+pessoas param de confiar neles.
+
+Quando você testa "ao clicar, aparece 'Copiado!'", o teste só quebra se o comportamento
+visível quebrar. Ele te dá liberdade para reescrever o interior do componente à vontade.
+**Um bom teste falha por um motivo, e esse motivo é sempre "o usuário foi prejudicado".**
+
+As três intenções que o `Hero` precisa garantir:
+
+1. Clicar na pill de contato **copia o e-mail** e a UI confirma.
+2. As pills **aparecem (fade) ~400ms após o load**.
+3. Com **movimento reduzido**, as pills aparecem **na hora**.
+
+> **Por que o `Hero` e não o menu?** O objetivo pedia testar "abrir/fechar o menu", mas
+> ao explorar o repo descobrimos que isso **já está coberto** em `Navbar.test.tsx`
+> (`aria-expanded` + visibilidade do overlay). O `CLAUDE.md` manda *apontar o conflito
+> antes de executar* e fazer *mudanças cirúrgicas*. Cobertura duplicada não é cobertura
+> melhor — é manutenção dobrada para a mesma garantia. A lacuna real era o `Hero`, que
+> não tinha **nenhum** teste. Por isso miramos nele.
+
+---
+
+## 1. Encontrar elementos pelo "papel" (role), não pelo CSS
+
+```ts
+screen.getByRole('button', { name: /fale comigo/i })
+screen.getByRole('button', { name: /ver projetos/i })
+```
+
+Poderíamos ter usado `querySelector('.rounded-full')` ou um `data-testid`. Por que não?
+
+A **Testing Library** foi desenhada para você consultar a página como uma pessoa (ou um
+leitor de tela) a percebe. Todo elemento interativo tem um **papel de acessibilidade**
+(`role`): `<button>` → `button`, `<a href>` → `link`. E tem um **nome acessível** — o
+texto que a tecnologia assistiva anuncia. `getByRole('button', { name: /fale comigo/i })`
+diz literalmente "o botão que uma pessoa cega ouviria como 'Fale comigo…'".
+
+Isso te dá duas coisas de graça:
+
+- **Resiliência**: mudar a classe Tailwind, o layout ou a árvore de `<div>`s não quebra o
+  teste. Só mudar o que o usuário percebe quebra.
+- **Acessibilidade como efeito colateral**: se você *não consegue* selecionar por role +
+  nome, provavelmente uma pessoa com leitor de tela também não usa aquele elemento. O
+  teste vira detector de problemas de a11y.
+
+> **Ordem de preferência de consulta:** `getByRole` → `getByLabelText` → `getByText`.
+> `data-testid` é o último recurso, para quando não há como descrever o elemento de forma
+> humana.
+
+O `name` aceita regex (`/fale comigo/i`) para casar um trecho **estável** ("Fale comigo")
+sem depender do texto completo, que inclui o e-mail e poderia variar.
+
+---
+
+## 2. `userEvent` vs. `fireEvent`: simular um humano, não um evento
+
+```ts
+const user = userEvent.setup()
+await user.click(...)
+```
+
+Um clique real não é *um* evento — é uma **sequência**: o ponteiro se move
+(`pointerover`, `pointermove`), pressiona (`pointerdown`, `mousedown`), foca, solta
+(`pointerup`, `mouseup`) e só então dispara `click`. O `userEvent` reproduz essa
+coreografia inteira; o `fireEvent.click` pula direto para o final, disparando um único
+evento sintético.
+
+Testar com `userEvent` te dá muito mais confiança de que "funciona quando um humano
+clica", que é a intenção real. Regra moderna: **use `userEvent` por padrão; `fireEvent`
+só para casos de baixo nível que o `userEvent` não cobre.**
+
+Repare no `await`: como `userEvent` simula a sequência de forma assíncrona, **toda**
+interação é uma Promise. Esquecer o `await` é a causa nº 1 de testes "flaky".
+
+---
+
+## 3. Tempo em teste: `vi.useFakeTimers()` e o poder de adiantar o relógio
+
+O `Hero` tem comportamento que depende do **tempo**:
+
+```ts
+// Hero.tsx
+const id = setTimeout(() => setPillsVisible(true), 400)
+```
+
+Esperar 400ms de verdade seria lento; esperar o typewriter ou o reset de 2s do
+"Copiado!" tornaria a suíte insuportável. Pior: tempo real é **não determinístico** — a
+máquina de CI pode disparar o timer "tarde". A solução é substituir o relógio do
+JavaScript por um **falso e controlado por você**:
+
+```ts
+beforeEach(() => { vi.useFakeTimers() })
+afterEach(() => { vi.useRealTimers() })
+```
+
+A partir daí, `setTimeout`/`setInterval` **não avançam sozinhos**. Ficam congelados até
+você mandar o relógio andar:
+
+```ts
+act(() => { vi.advanceTimersByTime(400) })
+expect(container.style.opacity).toBe('1')
+```
+
+`advanceTimersByTime(400)` diz "faça o tempo pular 400ms". Todos os timers agendados para
+até 400ms disparam, na ordem certa, **instantaneamente**. O teste vira determinístico e
+rápido. É crucial **restaurar** com `vi.useRealTimers()` no `afterEach`: fake timers são
+globais e, esquecidos, um teste contamina o outro.
+
+---
+
+## 4. `act()`: por que envolvemos o avanço do relógio
+
+```ts
+act(() => { vi.advanceTimersByTime(400) })
+```
+
+Adiantar o relógio dispara o callback do `setTimeout`, que chama `setPillsVisible(true)`
+— uma **atualização de estado do React**. `act()` é a fronteira que diz ao React:
+"estou provocando uma atualização; processe tudo (renders, efeitos) até estabilizar
+**antes** de eu inspecionar o resultado". Sem `act()`, você poderia ler o DOM no meio de
+uma atualização — vendo um estado intermediário — e o React ainda imprimiria o aviso
+*"An update … was not wrapped in act(...)"*. Esse aviso significa que sua asserção pode
+estar olhando para o passado.
+
+Detalhe: **`userEvent` já embrulha as ações em `act()`** por baixo dos panos. Por isso o
+teste do clique não precisa de `act()` explícito, mas o teste que adianta o relógio
+manualmente precisa.
+
+---
+
+## 5. O jsdom não é um navegador: mockando `matchMedia`
+
+Os testes rodam no **jsdom**, uma simulação leve do DOM em Node. Ele implementa boa parte
+da API do navegador, mas **não tudo**. `usePrefersReducedMotion` chama:
+
+```ts
+window.matchMedia('(prefers-reduced-motion: reduce)').matches
+```
+
+No jsdom, `window.matchMedia` é `undefined`. Então nós o **substituímos** por uma versão
+controlável:
+
+```ts
+function mockMatchMedia(matches: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })) as unknown as typeof window.matchMedia
+}
+```
+
+`mockMatchMedia(false)` simula um usuário sem preferência (pills fazem fade);
+`mockMatchMedia(true)` simula quem pediu movimento reduzido (pills na hora). **Mockar não
+é trapacear** — é isolar a unidade sob teste do ambiente para poder testar cada cenário
+de propósito.
+
+Repare que o mock devolve `addEventListener`/`removeEventListener` como `vi.fn()`, porque
+o hook chama `media.addEventListener('change', ...)`. Um mock precisa ter a **mesma forma**
+do objeto real, senão o código explode ao chamar um método inexistente. O mesmo padrão já
+vive em `usePrefersReducedMotion.test.ts` e `BackgroundVideo.test.tsx` — reaproveitá-lo
+mantém a suíte consistente.
+
+---
+
+## 6. A grande armadilha do dia: `userEvent` traz o próprio clipboard
+
+Este foi o ponto que mais ensina. A primeira versão do teste fez assim:
+
+```ts
+const writeText = vi.fn()
+Object.defineProperty(navigator, 'clipboard', { value: { writeText }, ... })
+await user.click(botãoDeEmail)
+expect(writeText).toHaveBeenCalledWith(EMAIL) // ❌ "Number of calls: 0"
+```
+
+E falhava com **0 chamadas** — apesar de "Copiado!" aparecer na tela! Como o handler
+rodou (a confirmação surgiu) mas o nosso mock não foi chamado?
+
+Investigando, a resposta: **`userEvent.setup()` instala o seu próprio `navigator.clipboard`
+falso** para conseguir testar copiar/colar de forma realista. Como chamamos `setup()`
+*depois* de definir nosso mock, o `userEvent` **sobrescreveu** o `navigator.clipboard` —
+então `copyEmail` escreveu no clipboard *do userEvent*, não no nosso. Nosso `vi.fn()`
+ficou órfão, com 0 chamadas. (Provamos isso medindo a identidade do objeto antes e depois:
+`sameBefore=true`, `sameAfter=false`.)
+
+A lição de fundamento: **quando uma ferramenta de teste gerencia um recurso do ambiente,
+trabalhe *com* a ferramenta, não contra ela.** Em vez de brigar por quem controla
+`navigator.clipboard`, deixamos o `userEvent` prover o clipboard e simplesmente **lemos de
+volta** o que foi copiado:
+
+```ts
+await user.click(screen.getByRole('button', { name: /fale comigo/i }))
+
+expect(await navigator.clipboard.readText()).toBe(EMAIL)   // o e-mail foi parar lá?
+expect(screen.getByText('Copiado!')).toBeInTheDocument()   // a UI confirmou?
+```
+
+Esse teste é melhor que o original em dois sentidos:
+
+- **Testa a intenção, não a fiação.** "O e-mail está no clipboard" é o que o usuário quer;
+  "`writeText` foi chamado com tal argumento" é como o código faz isso *hoje*. `readText()`
+  verifica o resultado, seja qual for o caminho interno.
+- **Não depende da implementação do clipboard.** Amanhã o `copyEmail` pode usar outra API
+  de cópia; enquanto o e-mail acabar no clipboard, o teste continua válido.
+
+> **Moral:** antes de mockar uma API global, verifique se a sua ferramenta de teste já não
+> a controla. Duas mãos no mesmo volante = bug silencioso.
+
+Um detalhe de tempo: este teste chama `vi.useRealTimers()` no início. O fluxo clique +
+Promise do clipboard se encaixa mal com fake timers (a primeira tentativa *travou* por
+5s). Como esse teste não precisa controlar o relógio, voltar ao tempo real é o caminho
+mais simples e robusto.
+
+---
+
+## 7. `toBeVisible()` vs. `opacity`: por que verificamos coisas diferentes
+
+No `Navbar.test.tsx`, a visibilidade do menu é testada com `expect(link).not.toBeVisible()`.
+Nas pills do `Hero`, verificamos o `opacity` na unha:
+
+```ts
+expect(container.style.opacity).toBe('0')   // escondido
+// ...avança 400ms...
+expect(container.style.opacity).toBe('1')   // visível
+```
+
+Por que não usar `toBeVisible()` nos dois? Porque **existem várias formas de "esconder" um
+elemento no CSS, e elas não são equivalentes**:
+
+| Técnica | Ocupa espaço? | Recebe clique? | Lido por leitor de tela? | `toBeVisible()` vê como oculto? |
+|---|---|---|---|---|
+| `display: none` | não | não | não | **sim** |
+| `visibility: hidden` | sim | não | não | **sim** |
+| `opacity: 0` | sim | **sim** (!) | **sim** (!) | **não** |
+
+O menu usa `visibility: hidden` (+ `pointerEvents: none`), que o jest-dom entende como
+"invisível" — por isso `toBeVisible()` funciona lá. Já as pills usam `opacity` para poder
+**animar o fade** com `transition`. E `opacity: 0` é especial: o elemento continua
+ocupando espaço, clicável e anunciado por leitores de tela — só está *transparente*. Por
+isso o jest-dom **não** o considera oculto, e `toBeVisible()` retornaria `true` mesmo com
+`opacity: 0`. Como a intenção é justamente "a opacidade vai de 0 a 1 no fade", verificamos
+o `opacity` diretamente — usar `toBeVisible()` aqui passaria sempre, sem testar nada.
+
+> **Lição de a11y de brinde:** `opacity: 0` **não** esconde conteúdo de leitores de tela.
+> Para esconder de verdade, use `display:none`/`visibility:hidden` ou o atributo `hidden`.
+
+Sobre o `.parentElement!`: pegamos uma pill conhecida e subimos um nível até o `div` que
+carrega o `opacity`. É um pequeno acoplamento à estrutura, mas deliberado e mínimo —
+ancoramos numa âncora estável (o botão "Ver projetos", que existe por intenção) em vez de
+num `data-testid` artificial. O `!` é o **non-null assertion** do TypeScript: garantimos
+ao compilador que aquele pai existe (e existe, pois a pill está dentro do container).
+
+---
+
+## 8. Como rodar e o que observar
+
+```bash
+npm test
+```
+
+Os três testes novos do `Hero` passam junto com os demais (a suíte fica com 24 testes em
+7 arquivos). `npm run build` confirma que o TypeScript strict aceita o arquivo (sem `any`).
+
+Para entender de verdade, **quebre de propósito** e veja o teste te avisar:
+
+- Troque `400` por `4000` no `setTimeout` do `Hero` → o teste do fade falha (as pills não
+  apareceram em 400ms). É a intenção "aparecem logo após o load" sendo protegida.
+- Faça `copyEmail` copiar o texto errado → `readText()` não bate com o e-mail.
+- Remova o texto "Fale comigo" do botão → `getByRole(..., { name: /fale comigo/i })` não
+  encontra nada — e isso *deveria* falhar: seria uma regressão de acessibilidade.
+
+> Um teste em que você não sabe descrever "o que faria ele falhar" não protege de nada.
+> Sempre saiba qual regressão cada teste captura.
+
+---
+
+## Resumo dos fundamentos (Aula 3)
+
+| Conceito | Onde apareceu | Por que importa |
+|---|---|---|
+| Testar intenção, não implementação | as 3 asserções | o teste é contrato sobre o que o usuário percebe |
+| Consulta por role + nome acessível | `getByRole(..., { name })` | resiliente a refatoração e detector de a11y |
+| `userEvent` simula um humano | `await user.click` | confiança + lembrar do `await` |
+| Fake timers | `advanceTimersByTime(400)` | tempo determinístico e rápido; sempre restaurar |
+| `act()` | avanço manual do relógio | sincroniza atualizações antes de inspecionar o DOM |
+| jsdom ≠ navegador | mock de `matchMedia` | mocke o que falta, com a forma correta |
+| Trabalhar com a ferramenta | clipboard do `userEvent` | leia com `readText()` em vez de brigar pelo `navigator.clipboard` |
+| `opacity: 0` ≠ escondido | `toBeVisible` vs. `opacity` | escolha a asserção conforme a técnica de CSS |
+| Não duplicar cobertura | menu deixado como está | aponte o conflito e mire a lacuna real |
