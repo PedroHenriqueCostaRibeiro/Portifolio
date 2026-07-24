@@ -13,8 +13,7 @@ export default function Navbar() {
   return (
     <>
       <nav
-        className="fixed top-0 left-0 w-full flex flex-row justify-between items-center px-5 sm:px-8 py-4 sm:py-5"
-        style={{ zIndex: 10 }}
+        className="fixed top-0 left-0 w-full flex flex-row justify-between items-center px-5 sm:px-8 py-4 sm:py-5 z-10"
       >
         {/* Logo */}
         <div className="flex flex-row items-center gap-3">
@@ -90,9 +89,8 @@ export default function Navbar() {
       {/* Mobile overlay */}
       <div
         id="mobile-menu"
-        className="md:hidden fixed inset-0 bg-white/95 backdrop-blur-sm flex flex-col justify-center items-start px-8 gap-8 transition-[opacity,visibility] duration-300"
+        className="md:hidden fixed inset-0 bg-white/95 backdrop-blur-sm flex flex-col justify-center items-start px-8 gap-8 transition-[opacity,visibility] duration-300 z-9"
         style={{
-          zIndex: 9,
           opacity: menuOpen ? 1 : 0,
           visibility: menuOpen ? 'visible' : 'hidden',
           pointerEvents: menuOpen ? 'auto' : 'none',

@@ -99,9 +99,8 @@ export default function BackgroundVideo() {
       muted
       playsInline
       preload="auto"
-      className="fixed inset-0 h-full w-full"
+      className="fixed inset-0 h-full w-full z-0"
       style={{
-        zIndex: 0,
         objectFit: 'cover',
         objectPosition: '70% center',
         backgroundColor: FALLBACK_COLOR,

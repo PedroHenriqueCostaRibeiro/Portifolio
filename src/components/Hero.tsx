@@ -45,8 +45,7 @@ export default function Hero() {
 
   return (
     <section
-      className="h-screen flex flex-col justify-end pb-12 md:justify-center md:pb-0 px-5 sm:px-8 md:px-10 overflow-hidden"
-      style={{ zIndex: 1, position: 'relative' }}
+      className="relative z-1 h-screen flex flex-col justify-end pb-12 md:justify-center md:pb-0 px-5 sm:px-8 md:px-10 overflow-hidden"
     >
       <div className="max-w-xl relative z-10">
         {/* 1. Blurred intro label */}
